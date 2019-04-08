@@ -11,7 +11,7 @@ sudo docker run  -p 8080:8080 --net=host  envoy:v1
 Use the generated js files to access the grpc server!
 
 ## Re-configure ip address, if envoy is running on "other machine"
-[modify](configuration/grpc_web/docker/envoy.yaml) and rebuild envoy docker.
+[modify](/configuration/grpc_web/docker/envoy.yaml) and rebuild envoy docker. More specifically change 127.0.0.1 to point to the machine where [signalbroker-server](https://github.com/volvo-cars/signalbroker-server) is running. The redo the docke build and docker run flow as described above
 
 ### Reference, re-generate web-grp js files
 
