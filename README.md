@@ -14,7 +14,7 @@ iex -S mix
 ```
 
 ## grpc web
-Point you browser to [http://you_envoy_machine_ip:8080/](http://localhost:8080/)
+Point your browser to [http://you_envoy_machine_ip:8080/](http://localhost:8080/). Once your web client is started click the red red field in the status bar at the bottom. Configure it by setting your Envoy ip, http://[your_envoy_server]:8081 
 
 in order to get connection working with signal_server you need envoy. Check [readme](configuration/grpc_web/README.md) on how to get started.
 
