@@ -41,3 +41,10 @@ The controlls being displayed are hardcoded in a javascript file `service_client
 The API is now documentet at this point.
 For a working sample of how to use the code go to `priv/websocket_demo/js/web_car.js`.
 More importantly, look at the *Websocket* section.
+
+# Frontend client configuration
+
+If you want to customize the web client, follow these instructions.
+
+1. See [readme libraryCompiler](libraryCompiler/README.md) to take the GRPC generated files and bundle them into a javascript library.
+2. Then see [readme clientSource](clientSource/README.md) to configure the front-end web client built with VueJS which is preconfigured to use the library from step 1.
