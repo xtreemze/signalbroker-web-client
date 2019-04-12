@@ -238,7 +238,7 @@
           :color="connectionStatus"
           @click="dialog = true"
         >
-          Broker: {{ brokerServerIp }}
+          Broker Envoy: {{ brokerServerIp }}
         </VBtn>
       </span>
     </VFooter>

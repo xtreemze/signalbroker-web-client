@@ -16,6 +16,7 @@ yarn serve
 ```
 yarn build
 ```
+If using the "Cowboy" server, you will want to copy the generated `dist` folder to the signalbroker-web-client repo `signalbroker-web-client/priv/` and repace the existing files in that folder.
 
 ### Lints and fixes files
 ```
