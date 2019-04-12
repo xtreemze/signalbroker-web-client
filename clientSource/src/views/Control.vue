@@ -21,18 +21,23 @@
             <VLayout row>
               <VSwitch
                 v-model="onlineFilter"
-                label="Hide inactive "
+                label="Hide inactive"
+                append-icon="visibility_off"
               />
               <VSwitch
                 v-model="firstRun"
                 label="Clear history"
+                append-icon="clear_all"
               />
             </vlayout>
           </VContainer>
         </template>
       </VToolbar>
       <VLayout column>
-        <VFlex xs12>
+        <VFlex
+          xs12
+          py-3
+        >
           <VCardText>
             <div
               v-if="selectedSignals.length === 0"
@@ -102,6 +107,7 @@
         hide-actions
         :items="signalDataList"
         content-class="layout row wrap"
+        item-key="id"
         :rows-per-page-items="rowsPerPageItems"
         :pagination.sync="pagination"
       >
@@ -118,10 +124,33 @@
             :raw="props.item.raw"
             :description="props.item.description"
             :online-filter="onlineFilter"
+            :timestamp="props.item.timestamp"
           />
         </template>
       </VDataIterator>
     </VContainer>
+    <VSnackbar
+      v-model="snackbarDisplayed"
+      bottom
+      right
+      :color="snackbarColor"
+      :timeout="8000"
+    >
+      <VLayout>
+        <VIcon left>
+          {{ snackbarIcon }}
+        </VIcon>
+        {{ snackbarMessage }}
+      </VLayout>
+      <VBtn
+        flat
+        @click.native="value = false"
+      >
+        <VIcon>
+          close
+        </VIcon>
+      </VBtn>
+    </VSnackbar>
   </div>
 </template>
 <script>
@@ -131,13 +160,17 @@
     name: "Control",
     components: { SignalCard },
     data: () => { return {
-      onlineFilter: true,
+      snackbarDisplayed: false,
+      onlineFilter: false,
       chipValue: [],
       subscribed: false,
       request: '',
       search: null,
       caseSensitive: false,
       stream: null,
+      snackbarMessage: 'Not connected',
+      snackbarIcon: 'warning',
+      snackbarColor: 'error',
       NetworkService: null,
       subsConfig: null,
       responseArray: [],
@@ -183,15 +216,27 @@
     },
     mounted () {
       this.streamSetup()
+      this.filter()
     },
     beforeDestroy () {
+      const currentStatus = this.connectionStatus
       this.stopStream()
+      this.connectionStatus = currentStatus
     },
     methods: {
+      filter(){ setTimeout(() => {
+        this.onlineFilter = true
+      }, 7000);},
+      snackbar (color, snackbarMessage, icon) {
+        this.snackbarColor = color
+        this.snackbarMessage = snackbarMessage
+        this.snackbarIcon = icon || 'warning'
+        this.snackbarDisplayed = true
+      },
       responseIncludes (item) {
         const findName = this.responseArray.findIndex((element) => {
           return element === item })
-        if ( findName === -1) { return false } else { return true }
+        if (findName === -1) { return false } else { return true }
       },
       remove (item) {
         // this.firstRun = true
@@ -231,14 +276,17 @@
                                              this.connectionStatus = 'success--text'
         });
         this.stream.on('end', () => { this.stopStream()
+                                      this.snackbarDisplayed = false;
         })
         this.stream.on('status', (status) => { console.log('status', status.metadata); })
         this.stream.on('error', (error) => { this.stopStream();
+                                             this.snackbar('error', "Disconected", 'warning')
+                                             this.connectionStatus = 'error--text'
         })
         this.$store.commit('updateRequestHistory', this.requestHistory)
       },
       stopStream () {
-        this.request = 'Cancel Sub';
+        this.request = 'Cancel Subscription';
         if (this.stream) {
           this.stream.cancel()
         }
@@ -270,10 +318,12 @@
           }
           const name = signal.getId().getName()
           this.responseArray.push(name)
+          const timestamp = signal.getTimestamp()
+          console.log('timestamp', timestamp);
           streamResult.push({
             name: name,
-            id: name,
-            data: signalData,
+            id: name + nameSpace,
+            data: {timestamp: timestamp, data: signalData},
             dataType: dataType,
             nameSpace: nameSpace,
             unit: signal.unit,

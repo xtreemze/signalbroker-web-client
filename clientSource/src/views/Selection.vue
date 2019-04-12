@@ -13,9 +13,11 @@
       </VToolbarTitle>
       <VSpacer />
       <template v-slot:extension>
-        <VFlex
+        <VSheet
+          class="
           grow
           ml-2
+        "
         >
           <VTextField
             v-model.trim.lazy="search"
@@ -26,20 +28,13 @@
             clearable
             prepend-icon="search"
           />
-        </VFlex>
-        <VFlex
-          shrink
-          px-4
-        >
           <VCheckbox
             v-model="caseSensitive"
-            class="hidden-sm-and-down"
             :disabled="signalSelectionItems.length === 0"
-            dark
             hide-details
             label="Case sensitive"
           />
-        </VFlex>
+        </VSheet>
       </template>
     </VToolbar>
     <VLayout
@@ -47,6 +42,7 @@
       wrap
     >
       <VFlex
+        py-4
         pl-4
         xs12
         sm12
@@ -61,6 +57,7 @@
             <VTreeview
               v-model="selectedSignalsLocal"
               :search="search"
+              itemid="id"
               :items="signalSelectionItems"
               selectable
               transition
@@ -87,6 +84,7 @@
         xs12
         sm12
         md6
+        py-4
       >
         <VDivider class="hidden-md-and-up" />
         <VLayout
@@ -124,6 +122,12 @@
         @click="clear"
       >
         Clear
+      </VBtn>
+      <VBtn
+        flat
+        @click="fetchLists"
+      >
+        Fetch
       </VBtn>
       <VSpacer />
       <VBtn
@@ -285,6 +289,7 @@
         }
       },
       populateParents (namespaceList) {
+        let globalIndex = 0
         const signals = {
           id: 'Signal Buses',
           name: 'Signal Buses',
@@ -292,10 +297,11 @@
         }
         namespaceList.forEach(list => {
           const exportedChild = {
-            id: list.getNamespace().getName(),
+            id: list.getNamespace().getName() + globalIndex,
             name: list.getNamespace().getName(),
             children: this.listNamespaceSignals(list),
           };
+          globalIndex += 1
           signals.children.push(exportedChild)
         })
         this.signalSelectionItems = [signals]
@@ -313,6 +319,7 @@
         this.requestHistory.push({ date: Date.now(), request: this.request, response: 'List signals' })
         SystemService.listSignals(request, {}, function listSignalsCallback (err, response) {
           if (response) {
+            let childIndex = 0;
             const frames = response.getFrameList()
             frames.forEach(frame => {
               const frameMetaData = frame.getSignalinfo().getMetadata()
@@ -325,20 +332,22 @@
                 const frameChildSignalId = frameChild.getId()
                 const frameChildMetaData = frameChild.getMetadata()
                 const frameChildName = frameChildSignalId.getName()
-                const frameChildLabel = { id: frameChildName,
-                                          name: frameChildName,
-                                          children: [],
-                                          signalId: frameChildSignalId,
-                                          min: frameChildMetaData.getMin(),
-                                          max: frameChildMetaData.getMax(),
-                                          size: frameChildMetaData.getSize(),
-                                          unit: frameChildMetaData.getUnit(),
-                                          description: frameChildMetaData.getDescription(),
+                const frameChildLabel = {
+                  id: frameChildName + childIndex,
+                  name: frameChildName,
+                  children: [],
+                  signalId: frameChildSignalId,
+                  min: frameChildMetaData.getMin(),
+                  max: frameChildMetaData.getMax(),
+                  size: frameChildMetaData.getSize(),
+                  unit: frameChildMetaData.getUnit(),
+                  description: frameChildMetaData.getDescription(),
                 }
+                childIndex += 1
                 frameChildGroup.push(frameChildLabel)
               })
               frameGroup.push({
-                id: frameName,
+                id: frameName + childIndex,
                 name: frameName,
                 children: frameChildGroup,
                 signalId: frameSignalId,
@@ -348,6 +357,7 @@
                 unit: frameMetaData.getUnit(),
                 description: frameMetaData.getDescription(),
               })
+              childIndex += 1
             })
           }
         })

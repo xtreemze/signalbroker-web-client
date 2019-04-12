@@ -36,7 +36,7 @@
             </VListTileContent>
             <VListTileContent class="align-end">
               <h3 class="monoSpace">
-                {{ data }}
+                {{ data.data }}
               </h3>
             </VListTileContent>
           </VListTile>
@@ -50,6 +50,18 @@
           </VListTile>
         </VList>
         <VCardActions>
+          <VBtn
+            block
+            flat
+            @click="showLog = !showLog"
+          >
+            <VIcon small>
+              view_list
+            </VIcon>
+            <VIcon small>
+              {{ showLog ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
+            </VIcon>
+          </VBtn>
           <VBtn
             block
             flat
@@ -77,7 +89,32 @@
         </VCardActions>
         <VSlideYTransition>
           <VCardText
-            v-show="showAdditionalInfo"
+            v-if="showLog"
+            pa-0
+            ma-0
+          >
+            <VDataTable
+              :items="entryLog"
+              item-key="id"
+              :pagination.sync="pagination"
+              hide-headers
+            >
+              <template v-slot:items="props">
+                <tr class="monoSpace">
+                  <td>
+                    {{ props.item.id | toDate }}
+                  </td>
+                  <td>
+                    {{ props.item.data }}
+                  </td>
+                </tr>
+              </template>
+            </VDataTable>
+          </VCardText>
+        </VSlideYTransition>
+        <VSlideYTransition>
+          <VCardText
+            v-if="showAdditionalInfo"
             px-0
             mx-0
           >
@@ -136,7 +173,7 @@
         </VSlideYTransition>
         <VSlideYTransition>
           <VCardText
-            v-show="showConfiguration"
+            v-if="showConfiguration"
             px-0
             mx-0
           >
@@ -150,7 +187,7 @@
                         <VSlider
                           v-model="dataHistory"
                           label="Data Entries"
-                          max="200"
+                          max="800"
                           min="2"
                           step="1"
                         />
@@ -237,30 +274,6 @@
                     <VLayout row>
                       <VFlex>
                         <VSlider
-                          v-model="drawDuration"
-                          label="Draw duration"
-                          max="800"
-                          min="100"
-                          step="1"
-                        />
-                      </VFlex>
-                      <VFlex
-                        shrink
-                        headline
-                        pt-4
-                      >
-                        {{ drawDuration }}
-                      </VFlex>
-                    </VLayout>
-                  </VContainer>
-                </VListTileContent>
-              </VListTile>
-              <VListTile>
-                <VListTileContent>
-                  <VContainer px-0>
-                    <VLayout row>
-                      <VFlex>
-                        <VSlider
                           v-model="padding"
                           label="Padding"
                           max="32"
@@ -299,6 +312,30 @@
                   </VContainer>
                 </VListTileContent>
               </VListTile>
+              <VListTile>
+                <VListTileContent>
+                  <VContainer px-0>
+                    <VLayout row>
+                      <VFlex>
+                        <VSlider
+                          v-model="drawDuration"
+                          label="Draw duration"
+                          max="800"
+                          min="100"
+                          step="1"
+                        />
+                      </VFlex>
+                      <VFlex
+                        shrink
+                        headline
+                        pt-4
+                      >
+                        {{ drawDuration }}
+                      </VFlex>
+                    </VLayout>
+                  </VContainer>
+                </VListTileContent>
+              </VListTile>
             </VList>
           </VCardText>
         </VSlideYTransition>
@@ -310,6 +347,9 @@
   export default {
     name: 'SignalCard',
     filters: {
+      toDate (input) {
+        return new Date(input).toLocaleTimeString({}, { hour12: false })
+      },
       toRawString (input) {
         if (input) {
           return input.map(entry => {
@@ -330,7 +370,7 @@
       nameSpace: { type: String, default: null },
       unit: { type: String, default: null },
       description: { type: String, default: null },
-      data: { type: Number, default: null },
+      data: { type: Object, default: null },
       min: { type: Number, default: null },
       max: { type: Number, default: null },
       size: { type: Number, default: null },
@@ -339,8 +379,14 @@
     },
     data () {
       return {
+        pagination: {
+          sortBy: 'id',
+          descending: true,
+        },
         showAdditionalInfo: false,
         showConfiguration: false,
+        entryLog: [],
+        showLog: false,
         animate: true,
         drawDuration: 300,
         radius: 2,
@@ -361,7 +407,7 @@
           const dataLength = this.chartDataValueArray.length
           const dataSet = new Set(this.chartDataValueArray)
           const dataSetLength = dataSet.size
-          if ( dataSetLength < 4 || dataLength < this.dataHistory) {
+          if (dataSetLength < 3 || dataLength < this.dataHistory) {
             return false
           } else { return true }
         } else { return true }
@@ -370,16 +416,23 @@
     watch: {
       data () {
         // this.recordUpdate()
-        this.chartDataValueArray.push(this.data)
+        this.chartDataValueArray.push(this.data.data)
+        this.entryLog.push({ id: this.data.timestamp, data: this.data.data })
         if (this.chartDataValueArray.length > this.dataHistory) {
           const difference = this.chartDataValueArray.length - this.dataHistory
           this.chartDataValueArray.splice(0, difference)
         }
+        if (this.entryLog.length > this.dataHistory) {
+          const difference = this.entryLog.length - this.dataHistory
+          this.entryLog.splice(0, difference)
+        }
       },
     },
-    created() {
+    created () {
       this.chartDataValueArray = new Array(this.dataHistory)
       this.chartDataValueArray.fill(0)
+      this.entryLog = new Array(this.dataHistory)
+      this.entryLog.fill({ id: 0, data: 0 })
     },
     methods: {
       // recordUpdate(){ this.lastUpdate = Date.now()},
@@ -387,7 +440,9 @@
   }
 </script>
 <style>
+@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
 .monoSpace {
-  font-family: monospace;
+  font-family: "Roboto Mono", monospace;
+  font-weight: 200;
 }
 </style>
