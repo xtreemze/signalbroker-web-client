@@ -4,7 +4,6 @@
       <VToolbar
         card
         color="transparent"
-        extended
       >
         <VIcon>
           gamepad
@@ -12,89 +11,99 @@
         <VToolbarTitle>
           Control
         </VToolbarTitle>
-        <VSpacer />
-        <template v-slot:extension>
-          <VContainer
-            fluid
-            fill-height
-          >
-            <VLayout row>
-              <VSwitch
-                v-model="onlineFilter"
-                label="Hide inactive"
-                append-icon="visibility_off"
-              />
-              <VSwitch
-                v-model="firstRun"
-                label="Clear history"
-                append-icon="clear_all"
-              />
-            </vlayout>
-          </VContainer>
-        </template>
       </VToolbar>
-      <VLayout column>
-        <VFlex
-          xs12
-          py-3
+      <VContainer
+        fill-height
+        fluid
+        class="my-0 py-0"
+      >
+        <VLayout
+          row
+          wrap
         >
-          <VCardText>
-            <div
-              v-if="selectedSignals.length === 0"
-              key="title"
-              class="title font-weight-light grey--text pa-3 text-xs-center"
-            >
-              You have no selected signals at this time.
-            </div>
-            <VScrollXTransition
-              group
-              hide-on-leave
-            >
-              <VChip
-                v-for="(selection, i) in selectedSignals"
-                :key="i"
-                small
-                :color="responseIncludes(selection.name) ? 'success' : ''"
-                close
-                :label="(selection.children.length > 0)"
-                @input="remove(selectedSignals[i])"
-              >
-                {{ selection.name }}
-              </VChip>
-            </VScrollXTransition>
-          </VCardText>
-        </VFlex>
-      </VLayout>
+          <VSwitch
+            v-model="onlineFilter"
+            label="Hide inactive"
+          />
+          <VSwitch
+            v-model="firstRun"
+            label="Clear history"
+          />
+          <VFlex>
+            <VSlider
+              v-model="dataHistory"
+              label="History"
+              max="140"
+              min="30"
+              step="1"
+              thumb-label
+            />
+          </VFlex>
+        </VLayout>
+      </VContainer>
+      <VCardText class="overflowY py-3">
+        <div
+          v-if="selectedSignals.length === 0"
+          key="title"
+          class="title font-weight-light grey--text pa-3 text-xs-center"
+        >
+          You have no selected signals at this time.
+        </div>
+        <span
+          v-for="(selection, i) in selectedSignals"
+          :key="i"
+        >
+          <VDivider
+            v-if="selection.children.length > 0"
+            class="my-2"
+          />
+          <VChip
+            small
+            :color="responseIncludes(selection.name) ? 'success' : ''"
+            close
+            :label="(selection.children.length > 0)"
+            @input="remove(i)"
+            @click="highlight(selection.name)"
+          >
+            {{ selection.name }}
+          </VChip>
+        </span>
+      </VCardText>
       <VDivider />
       <VCardActions>
-        <VBtn
-          flat
-          depressed
-          to="selection"
+        <VLayout
+          row
+          wrap
         >
-          Signal tree
-          <VIcon right>
-            ballot
-          </VIcon>
-        </VBtn>
-        <VSpacer />
-        <VBtn
-          v-if="!subscribed"
-          :disabled="selectedSignals.length === 0"
-          color="green"
-          depressed
-          @click="streamSetup"
-        >
-          Subscribe
-        </VBtn>
-        <VBtn
-          v-else
-          color="error"
-          depressed
-          @click="stopStream"
-        >
-          Unsubscribe
-        </VBtn>
+          <VBtn
+            flat
+            depressed
+            to="selection"
+          >
+            Signal tree
+            <VIcon right>
+              ballot
+            </VIcon>
+          </VBtn>
+          <VSpacer />
+          <VBtn
+            v-if="!subscribed"
+            :disabled="selectedSignals.length === 0"
+            color="green"
+            depressed
+            @click="streamSetup"
+          >
+            Subscribe
+          </VBtn>
+          <VBtn
+            v-else
+            color="error"
+            depressed
+            @click="stopStream"
+          >
+            Unsubscribe
+          </VBtn>
+        </VLayout>
       </VCardActions>
     </VCard>
     <VContainer
@@ -109,7 +118,7 @@
         content-class="layout row wrap"
         item-key="id"
         :rows-per-page-items="rowsPerPageItems"
-        :pagination.sync="pagination"
+        :pagination="pagination"
       >
         <template v-slot:item="props">
           <SignalCard
@@ -125,6 +134,8 @@
             :description="props.item.description"
             :online-filter="onlineFilter"
             :timestamp="props.item.timestamp"
+            :data-history="dataHistory"
+            :highlight="props.item.highlight"
           />
         </template>
       </VDataIterator>
@@ -168,6 +179,7 @@
       search: null,
       caseSensitive: false,
       stream: null,
+      dataHistory: 52,
       snackbarMessage: 'Not connected',
       snackbarIcon: 'warning',
       snackbarColor: 'error',
@@ -178,11 +190,12 @@
       pagination: {
         rowsPerPage: -1, // infinite rows per page
         descending: false, // sorting order
-        sortBy: "name", // sort field for pagination
+        sortBy: "id", // sort field for pagination
       },
       signalDataList: [],
       firstRun: true,
       chipOnline: [],
+      selected: false,
     } },
     computed: {
       connectionStatus: {
@@ -191,6 +204,14 @@
         },
         set (value) {
           this.$store.commit('updateConnectionStatus', value)
+        },
+      },
+      brokerServerIp: {
+        get () {
+          return this.$store.state.brokerServerIp
+        },
+        set (value) {
+          this.$store.commit('updateBrokerServerIp', value)
         },
       },
       selectedSignals: {
@@ -224,9 +245,18 @@
       this.connectionStatus = currentStatus
     },
     methods: {
-      filter(){ setTimeout(() => {
+      highlight(name){
+        const signal = this.signalDataList.findIndex(element => { return element.name === name })
+        if (signal !== -1){
+          this.signalDataList[signal].highlight = true
+          setTimeout(() => {
+            this.signalDataList[signal].highlight = false
+          }, 5000);
+        }
+      },
+      filter () { setTimeout(() => {
         this.onlineFilter = true
-      }, 7000);},
+      }, 4000); },
       snackbar (color, snackbarMessage, icon) {
         this.snackbarColor = color
         this.snackbarMessage = snackbarMessage
@@ -238,11 +268,10 @@
           return element === item })
         if (findName === -1) { return false } else { return true }
       },
-      remove (item) {
+      remove (index) {
         // this.firstRun = true
-        this.selectedSignals.splice(this.selectedSignals.indexOf(item), 1)
-        this.selectedSignals = [...this.selectedSignals]
         this.stopStream()
+        this.selectedSignals.splice(index, 1)
         this.streamSetup()
       },
       onlineChip () {
@@ -250,7 +279,7 @@
       },
       streamSetup () {
         // eslint-disable-next-line no-undef
-        this.NetworkService = new api.default.NetworkServiceClient(this.$store.state.brokerServerIp)
+        this.NetworkService = new api.default.NetworkServiceClient(this.brokerServerIp)
         // eslint-disable-next-line no-undef
         this.subsConfig = new api.default.SubscriberConfig()
         this.request = 'Subscribe'
@@ -272,16 +301,24 @@
       },
       startStream () {
         this.stream = this.NetworkService.subscribeToSignals(this.subsConfig)
-        this.stream.on('data', response => { this.streamResponse(response)
-                                             this.connectionStatus = 'success--text'
+        this.stream.on('data', response => {
+          this.streamResponse(response)
+          //  this.snackbar('success', "Connected", 'check')
+          if (this.connectionStatus !== 'success--text') {
+            this.connectionStatus = 'success--text'
+          }
         });
-        this.stream.on('end', () => { this.stopStream()
-                                      this.snackbarDisplayed = false;
+        this.stream.on('end', () => {
+          this.stopStream()
+          this.snackbarDisplayed = false;
         })
-        this.stream.on('status', (status) => { console.log('status', status.metadata); })
-        this.stream.on('error', (error) => { this.stopStream();
-                                             this.snackbar('error', "Disconected", 'warning')
-                                             this.connectionStatus = 'error--text'
+        this.stream.on('status', (status) => {
+          this.snackbar('info', status.details, 'info')
+        })
+        this.stream.on('error', (error) => {
+          this.stopStream();
+          //  this.snackbar('error', error.message, 'warning')
+          this.connectionStatus = 'error--text'
         })
         this.$store.commit('updateRequestHistory', this.requestHistory)
       },
@@ -319,11 +356,10 @@
           const name = signal.getId().getName()
           this.responseArray.push(name)
           const timestamp = signal.getTimestamp()
-          console.log('timestamp', timestamp);
           streamResult.push({
             name: name,
-            id: name + nameSpace,
-            data: {timestamp: timestamp, data: signalData},
+            id: nameSpace + name,
+            data: { timestamp: timestamp, data: signalData },
             dataType: dataType,
             nameSpace: nameSpace,
             unit: signal.unit,
@@ -331,6 +367,7 @@
             min: signal.min,
             size: signal.size,
             raw: signal.getRaw(),
+            highlight: false,
           })
         });
         if (!this.firstRun) {
@@ -354,12 +391,18 @@
     },
   }
 </script>
-<style scoped>
+<style>
+@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
 .overflowY {
+  overflow-x: hidden;
   overflow-y: auto;
-  max-height: calc(58vh - 228px);
+  max-height: calc(86vh - 300px);
 }
 .marginToolbar {
   margin-top: -64px;
+}
+.monoSpace {
+  font-family: "Roboto Mono", monospace;
+  font-weight: 400;
 }
 </style>

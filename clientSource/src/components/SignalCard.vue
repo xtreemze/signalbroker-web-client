@@ -7,105 +7,165 @@
       md4
       lg3
     >
-      <VCard ref="name">
+      <VCard
+        :color="highlight ? 'grey darken-2' : ''"
+        :raised="highlight"
+      >
         <VCardTitle>
           <h4>
             {{ name }}
           </h4>
         </VCardTitle>
-        <VExpandTransition>
+        <VContainer
+          v-if="visible"
+          fluid
+          fill-height
+          ma-0
+          pa-0
+          color="transparent"
+        >
           <VSparkline
             :auto-draw="animate"
             :auto-draw-duration="drawDuration"
-            height="100"
             :value="chartDataValueArray"
             color="grey"
+            :height="chartHeight"
             :line-width="lineWidth"
             :type="chartType"
             :padding="padding"
             :smooth="radius"
             :fill="fill"
             stroke-linecap="round"
+            :auto-line-width="autoLineWidth"
           />
-        </VExpandTransition>
+        </VContainer>
         <VDivider />
-        <VList dense>
-          <VListTile>
-            <VListTileContent>
+        <VList
+          v-if="visible"
+          dense
+        >
+          <VListTile
+            v-if="isParent === false"
+          >
+            <VListTileContent class="grey--text text-uppercase font-weight-black">
               {{ dataType || 'Data type' }}:
             </VListTileContent>
-            <VListTileContent class="align-end">
-              <h3 class="monoSpace">
+            <VListTileContent class="align-end text-xs-right">
+              <h3 class="monoSpace text-truncate ">
                 {{ data.data }}
               </h3>
             </VListTileContent>
           </VListTile>
-          <VListTile>
-            <VListTileContent>
-              Bus:
+          <VListTile v-if="isParent && raw.length">
+            <VListTileContent class="grey--text text-uppercase font-weight-black">
+              Raw:
             </VListTileContent>
-            <VListTileContent class="align-end">
-              {{ nameSpace }}
+            <VListTileContent class="align-end text-xs-right">
+              <h3 class="monoSpace text-truncate text-uppercase">
+                <span
+                  v-for="(byte, i) in raw"
+                  :key="i"
+                >
+                  <span v-if="(rawStringLength(byte) < 2)">0</span>{{ byte | rawStringFilter }}
+                </span>
+              </h3>
             </VListTileContent>
           </VListTile>
         </VList>
-        <VCardActions>
-          <VBtn
-            block
-            flat
-            @click="showLog = !showLog"
-          >
-            <VIcon small>
-              view_list
-            </VIcon>
-            <VIcon small>
-              {{ showLog ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
-            </VIcon>
-          </VBtn>
-          <VBtn
-            block
-            flat
-            @click="showAdditionalInfo = !showAdditionalInfo"
-          >
-            <VIcon small>
-              info
-            </VIcon>
-            <VIcon small>
-              {{ showAdditionalInfo ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
-            </VIcon>
-          </VBtn>
-          <VBtn
-            block
-            flat
-            @click="showConfiguration = !showConfiguration"
-          >
-            <VIcon small>
-              settings
-            </VIcon>
-            <VIcon small>
-              {{ showConfiguration ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
-            </VIcon>
-          </VBtn>
+        <VCardActions v-if="visible">
+          <VLayout>
+            <VBtn
+              block
+              flat
+              @click="showLog = !showLog"
+            >
+              <VIcon
+                small
+                color="grey"
+              >
+                view_list
+              </VIcon>
+              <VIcon
+                small
+                color="grey"
+              >
+                {{ showLog ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
+              </VIcon>
+            </VBtn>
+            <VBtn
+              block
+              flat
+              @click="showAdditionalInfo = !showAdditionalInfo"
+            >
+              <VIcon
+                small
+                color="grey"
+              >
+                info
+              </VIcon>
+              <VIcon
+                small
+                color="grey"
+              >
+                {{ showAdditionalInfo ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
+              </VIcon>
+            </VBtn>
+            <VBtn
+              block
+              flat
+              @click="showConfiguration = !showConfiguration"
+            >
+              <VIcon
+                small
+                color="grey"
+              >
+                settings
+              </VIcon>
+              <VIcon
+                small
+                color="grey"
+              >
+                {{ showConfiguration ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
+              </VIcon>
+            </VBtn>
+          </VLayout>
         </VCardActions>
         <VSlideYTransition>
           <VCardText
-            v-if="showLog"
-            pa-0
-            ma-0
+            v-show="showLog"
+            class="
+          pa-0
+          ma-0
+          "
           >
             <VDataTable
+              v-if="visible"
               :items="entryLog"
               item-key="id"
               :pagination.sync="pagination"
               hide-headers
             >
               <template v-slot:items="props">
-                <tr class="monoSpace">
+                <tr class="monoSpace text-uppercase">
                   <td>
                     {{ props.item.id | toDate }}
                   </td>
-                  <td>
+                  <td
+                    v-if="!isParent"
+                    class="text-xs-right text-truncate"
+                  >
                     {{ props.item.data }}
+                  </td>
+                  <td
+                    v-if="isParent && props.item.data.length"
+                    class="text-xs-right text-truncate"
+                  >
+                    <span
+                      v-for="(byte, i) in props.item.data"
+                      :key="i"
+                    >
+                      <span v-if="(rawStringLength(byte) < 2)">0</span>{{ byte | rawStringFilter }}
+                    </span>
                   </td>
                 </tr>
               </template>
@@ -114,12 +174,17 @@
         </VSlideYTransition>
         <VSlideYTransition>
           <VCardText
-            v-if="showAdditionalInfo"
-            px-0
-            mx-0
+            v-show="showAdditionalInfo"
+            class="
+          pa-0
+          ma-0
+          "
           >
             <VDivider />
-            <VList dense>
+            <VList
+              v-if="visible"
+              dense
+            >
               <VListTile>
                 <VListTileContent>
                   Description:
@@ -130,13 +195,21 @@
               </VListTile>
               <VListTile>
                 <VListTileContent>
+                  Bus:
+                </VListTileContent>
+                <VListTileContent class="align-end">
+                  {{ nameSpace }}
+                </VListTileContent>
+              </VListTile>
+              <VListTile v-if="!isParent">
+                <VListTileContent>
                   Min:
                 </VListTileContent>
                 <VListTileContent class="align-end">
                   {{ min }}
                 </VListTileContent>
               </VListTile>
-              <VListTile>
+              <VListTile v-if="!isParent">
                 <VListTileContent>
                   Max:
                 </VListTileContent>
@@ -144,7 +217,7 @@
                   {{ max }}
                 </VListTileContent>
               </VListTile>
-              <VListTile>
+              <VListTile v-if="!isParent">
                 <VListTileContent>
                   Unit:
                 </VListTileContent>
@@ -152,7 +225,7 @@
                   {{ unit }}
                 </VListTileContent>
               </VListTile>
-              <VListTile>
+              <VListTile v-if="!isParent">
                 <VListTileContent>
                   Size:
                 </VListTileContent>
@@ -160,33 +233,30 @@
                   {{ size }}
                 </VListTileContent>
               </VListTile>
-              <VListTile>
-                <VListTileContent>
-                  Raw:
-                </VListTileContent>
-                <VListTileContent class="align-end monoSpace">
-                  {{ raw | toRawString }}
-                </VListTileContent>
-              </VListTile>
             </VList>
           </VCardText>
         </VSlideYTransition>
         <VSlideYTransition>
           <VCardText
-            v-if="showConfiguration"
-            px-0
-            mx-0
+            v-show="showConfiguration"
+            class="
+          pa-0
+          ma-0
+          "
           >
             <VDivider />
-            <VList>
+            <VList
+              v-if="visible"
+              dense
+            >
               <VListTile>
                 <VListTileContent>
                   <VContainer px-0>
                     <VLayout row>
                       <VFlex>
                         <VSlider
-                          v-model="dataHistory"
-                          label="Data Entries"
+                          v-model="dataHistoryLocal"
+                          label="History"
                           max="800"
                           min="2"
                           step="1"
@@ -197,7 +267,7 @@
                         headline
                         pt-4
                       >
-                        {{ dataHistory }}
+                        {{ dataHistoryLocal }}
                       </VFlex>
                     </VLayout>
                   </VContainer>
@@ -296,6 +366,16 @@
                 <VListTileContent>
                   <VContainer px-0>
                     <VSwitch
+                      v-model="autoLineWidth"
+                      label="Auto line width"
+                    />
+                  </VContainer>
+                </VListTileContent>
+              </VListTile>
+              <VListTile>
+                <VListTileContent>
+                  <VContainer px-0>
+                    <VSwitch
                       v-model="fill"
                       label="Fill"
                     />
@@ -341,27 +421,21 @@
         </VSlideYTransition>
       </VCard>
     </VFlex>
-  </VFadeTransition>
+  </vfadetransition>
 </template>
 <script>
   export default {
     name: 'SignalCard',
     filters: {
       toDate (input) {
-        return new Date(input).toLocaleTimeString({}, { hour12: false })
+        const date = new Date(input)
+        return date.toLocaleTimeString({}, { hour12: false })
       },
-      toRawString (input) {
-        if (input) {
-          return input.map(entry => {
-            let preliminaryResult = entry.toString(16)
-            let result = ''
-            if (preliminaryResult.length < 2) {
-              result = "0" + preliminaryResult
-            } else {
-              result = preliminaryResult
-            }
-            return result }).toString()
-        }
+      toString (input) {
+        return input.toString()
+      },
+      rawStringFilter (input) {
+        return input.toString(16)
       },
     },
     props: {
@@ -371,11 +445,13 @@
       unit: { type: String, default: null },
       description: { type: String, default: null },
       data: { type: Object, default: null },
+      dataHistory: { type: Number, default: null },
       min: { type: Number, default: null },
       max: { type: Number, default: null },
       size: { type: Number, default: null },
-      raw: { type: [Uint8Array, String], default: null },
+      raw: { type: [String, Uint8Array], default: null },
       onlineFilter: { type: Boolean },
+      highlight: { type: Boolean },
     },
     data () {
       return {
@@ -387,62 +463,131 @@
         showConfiguration: false,
         entryLog: [],
         showLog: false,
-        animate: true,
-        drawDuration: 300,
+        animate: false,
+        drawDuration: 100,
         radius: 2,
         padding: 6,
+        dataHistoryLocal: 52,
         lineWidth: 2.2,
-        dataHistory: 42,
+        chartHeight: 120,
         chartType: 'trend',
         typeOptions: ['trend', 'bar'],
         chartDataValueArray: [],
         fill: false,
         lastUpdate: '',
+        isParent: false,
+        isBinary: false,
+        autoLineWidth: false,
       }
     },
     computed: {
-      // stale(){return (this.lastUpdate + 500 < Date.now())},
+      dataLength () {
+        return this.chartDataValueArray.length
+      },
+      entryLogLength () {
+        return this.entryLog.length
+      },
+      dataSetLength () {
+        return this.dataSet.size
+      },
+      dataSet () {
+        return new Set(this.chartDataValueArray)
+      },
       visible () {
-        if (this.onlineFilter) {
-          const dataLength = this.chartDataValueArray.length
-          const dataSet = new Set(this.chartDataValueArray)
-          const dataSetLength = dataSet.size
-          if (dataSetLength < 3 || dataLength < this.dataHistory) {
+        if (this.onlineFilter && !this.isParent) {
+          if (this.dataSetLength < 3 && this.dataHistoryLocal > 20) {
             return false
-          } else { return true }
+          } else {
+            return true }
         } else { return true }
       },
     },
     watch: {
       data () {
-        // this.recordUpdate()
-        this.chartDataValueArray.push(this.data.data)
-        this.entryLog.push({ id: this.data.timestamp, data: this.data.data })
-        if (this.chartDataValueArray.length > this.dataHistory) {
-          const difference = this.chartDataValueArray.length - this.dataHistory
-          this.chartDataValueArray.splice(0, difference)
+        if (this.dataLength > 86 && this.isBinary) {
+          this.fill = true
+        } else if (this.dataLength < 87) {
+          this.fill = false
         }
-        if (this.entryLog.length > this.dataHistory) {
-          const difference = this.entryLog.length - this.dataHistory
-          this.entryLog.splice(0, difference)
+        if (this.isParent === false) {
+          if (this.raw.length > 5) {
+            this.isParent = true
+          }
+          this.chartDataValueArray.push(this.data.data)
+          if (this.dataLength > this.dataHistoryLocal) {
+            const difference = this.dataLength - this.dataHistoryLocal
+            this.chartDataValueArray.splice(0, difference)
+          }
+          this.entryLog.push({ id: this.data.timestamp, data: this.data.data })
+          if (this.entryLogLength > this.dataHistoryLocal) {
+            const difference = this.entryLogLength - this.dataHistoryLocal
+            this.entryLog.splice(0, difference)
+          }
+          if (this.dataSetLength < 4) {
+            if (!this.isBinary && this.dataLength < 60) {
+              this.isBinary = true
+              this.setBar()
+            } else {
+              if (this.chartType !== this.typeOptions[0]) {
+                this.setLine()
+              }
+            }
+          } else {
+            if (!this.isBinary && this.dataLength < 90) {
+              this.isBinary = false
+              this.setLine()
+            }
+          }
+        }
+      },
+      dataHistory () {
+        this.dataHistoryLocal = this.dataHistory
+        if (this.chartType === this.typeOptions[1] && this.dataHistoryLocal < 30) {
+          this.autoLineWidth = true
+        } else {
+          this.autoLineWidth = false
+        }
+      },
+      raw () {
+        if (this.isParent) {
+          this.chartDataValueArray.push(this.data.data)
+          if (this.dataLength > this.dataHistoryLocal) {
+            const difference = this.dataLength - this.dataHistoryLocal
+            this.chartDataValueArray.splice(0, difference)
+          }
+          this.entryLog.push({ id: this.data.timestamp, data: this.raw })
+          if (this.entryLogLength > this.dataHistoryLocal) {
+            const difference = this.entryLogLength - this.dataHistoryLocal
+            this.entryLog.splice(0, difference)
+          }
         }
       },
     },
     created () {
-      this.chartDataValueArray = new Array(this.dataHistory)
+      this.chartDataValueArray = new Array(this.dataHistoryLocal)
       this.chartDataValueArray.fill(0)
-      this.entryLog = new Array(this.dataHistory)
-      this.entryLog.fill({ id: 0, data: 0 })
+      this.entryLog = new Array()
+      // this.entryLog.fill({ id: 0, data: 0 })
     },
     methods: {
-      // recordUpdate(){ this.lastUpdate = Date.now()},
+      setBar () {
+        if (this.chartType !== this.typeOptions[1]) {
+          this.chartType = this.typeOptions[1]
+          this.lineWidth = 4
+          this.radius = 0
+        }
+      },
+      setLine () {
+        if (this.chartType !== this.typeOptions[0]) {
+          this.chartType = this.typeOptions[0]
+          this.lineWidth = 1.8
+          this.radius = 2
+          this.autoLineWidth = false
+        }
+      },
+      rawStringLength (input) {
+        return input.toString(16).length
+      },
     },
   }
 </script>
-<style>
-@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
-.monoSpace {
-  font-family: "Roboto Mono", monospace;
-  font-weight: 200;
-}
-</style>
