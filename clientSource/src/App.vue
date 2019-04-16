@@ -248,11 +248,11 @@
       right
       multi-line
       hide-actions
-      :timeout="10000"
+      :timeout="0"
     >
       <VTextField
         v-model="brokerServerIp"
-        label="Broker IP and Port"
+        label="Broker Envoy IP:Port"
       />
       <VBtn
         flat
