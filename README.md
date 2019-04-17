@@ -1,9 +1,9 @@
 # Signalbroker web client
 
-HTTP server with static file serving and Core system websocket API.
+This project contains two things
 
-The webserver used in thes project is [Cowboy](https://github.com/ninenines/cowboy).
-
+- Web frontend interface for [signalbroker](https://github.com/volvo-cars/signalbroker-server) implemented using gRPC-Web
+- Exposes websocket interface enabling simpler js applications. Sample is included.
 
 ## Run
 
@@ -25,22 +25,20 @@ SIGNAL_SERVER_HOST_NAME=10.251.177.205 iex -S mix
 ```
 
 
-## grpc web
+## gRPC-Web
 Point your browser to [http://localhost:8080/](http://localhost:8080/). Once your web client is started click the red red field in the status bar at the bottom. Configure it by setting your Envoy ip, http://[your_envoy_server]:8081
 
 in order to get connection working with [signalbroker-server](https://github.com/volvo-cars/signalbroker-server) you need envoy. Check [readme](configuration/grpc_web/README.md) on how to get started.
 
 
-## simpler less capable option
+## Websocket - easier to get started, but less capable option
 
 To access the *Websocket client* UI point your web browser to [http://localhost:8080/websocket_demo/web_car.html](http://localhost:8080/websocket_demo/web_car.html).
-The controlls being displayed are hardcoded in a javascript file `service_client/priv/static_files/js/web_car.js`.
+The controlls being displayed are hardcoded in a javascript file [priv/websocket_demo/js/web_car.js](priv/websocket_demo/js/web_car.js).
 
-## Websocket API
+### Websocket API
 
-The API is now documentet at this point.
-For a working sample of how to use the code go to `priv/websocket_demo/js/web_car.js`.
-More importantly, look at the *Websocket* section.
+The API is simply the same as the [telnet API](https://github.com/volvo-cars/signalbroker-server/blob/master/apps/app_telnet/README.md) but sent over websocket.
 
 # Front-end client configuration
 
