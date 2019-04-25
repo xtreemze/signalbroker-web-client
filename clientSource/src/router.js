@@ -35,9 +35,9 @@ export default new Router({
       component: () => { return import(/* webpackChunkName: "selection" */ './views/Selection.vue') },
     },
     {
-      path: '/control',
-      name: 'control',
-      component: () => { return import(/* webpackChunkName: "control" */ './views/Control.vue') },
+      path: '/monitor',
+      name: 'monitor',
+      component: () => { return import(/* webpackChunkName: "monitor" */ './views/Monitor.vue') },
     },
     {
       path: '/sequences',

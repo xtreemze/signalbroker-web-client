@@ -1,124 +1,160 @@
 <template>
-  <VContainer grid-list-xl>
-    <VLayout
-      row
-      wrap
-    >
-      <VFlex
-        xs12
-        md3
+  <div>
+    <VCard class="marginToolbar">
+      <VToolbar
+        card
+        color="transparent"
       >
+        <VIcon>
+          bug_report
+        </VIcon>
+        <VToolbarTitle>
+          Diagnostic
+        </VToolbarTitle>
+      </VToolbar>
+      <VCardText class="overflowY py-3">
+        <div
+          v-if="selectedSignals.length === 0"
+          key="title"
+          class="title font-weight-light grey--text pa-3 text-xs-center"
+        >
+          You have no selected signals at this time.
+        </div>
+        Search for
+        <br>
+        PscmToVddmChasDiagResFrame <br>
+        VddmToAllFuncChasDiagReqFrame <br>
+        <VBtn
+          depressed
+          href="https://github.com/volvo-cars/signalbroker-server/blob/master/examples/grpc/python/simple_example.py"
+          color="primary"
+        >
+          Example
+        </VBtn>
+        <span
+          v-for="(selection, i) in selectedSignals"
+          :key="i"
+        >
+          <VSpacer
+            v-if="selection.isParent"
+            class="my-4"
+          />
+          <VChip
+            small
+            :color="responseIncludes(selection.name) ? 'success' : ''"
+            close
+            :label="selection.isParent"
+            @input="remove(i)"
+          >
+            {{ selection.name }}
+          </VChip>
+          <span
+            v-if="selection.isParent"
+            class="caption grey--text"
+          > {{ selection.namespace }}</span>
+          <VSpacer v-if="selection.isParent" />
+        </span>
+      </VCardText>
+      <VDivider />
+      <VCardActions>
         <VLayout
           row
           wrap
         >
-          <VFlex>
-            <VCard>
-              <VCardTitle>
-                <h2>
-                  List signals
-                </h2>
-              </VCardTitle>
-              <VCardActions>
-                <VBtn
-                  depressed
-                  @click="listSignals('ChassisCANhs')"
-                >
-                  Chassis
-                </VBtn>
-                <VBtn
-                  depressed
-                  @click="listSignals('BodyCANhs')"
-                >
-                  Body
-                </VBtn>
-              </VCardActions>
-            </VCard>
-          </VFlex>
-          <VFlex>
-            <VCard>
-              <VCardTitle>
-                <h2>
-                  Get Configuration
-                </h2>
-              </VCardTitle>
-              <VCardActions>
-                <VBtn
-                  depressed
-                  @click="getConfiguration"
-                >
-                  Get
-                </VBtn>
-                <VBtn
-                  depressed
-                  @click="fetchLists"
-                >
-                  Lists
-                </VBtn>
-              </VCardActions>
-            </VCard>
-          </VFlex>
-          <VFlex>
-            <VCard>
-              <VCardTitle>
-                <h2>
-                  Subscribe
-                </h2>
-              </VCardTitle>
-              <VCardActions>
-                <VBtn
-                  depressed
-                  @click="subscribe('DDMBodyFr01BodyCANhs64')"
-                >
-                  Subscribe
-                </VBtn>
-              </VCardActions>
-            </VCard>
-          </VFlex>
+          <VBtn
+            flat
+            depressed
+            to="selection"
+          >
+            <VIcon>
+              nature
+            </VIcon>
+          </VBtn>
+          <VSpacer />
+          <VBtn
+            v-if="!subscribed"
+            :disabled="selectedSignals.length === 0"
+            color="green"
+            depressed
+            @click="streamSetup"
+          >
+            Query
+          </VBtn>
+          <VBtn
+            v-else
+            color="error"
+            depressed
+            @click="stopStream"
+          >
+            Cancel
+          </VBtn>
         </VLayout>
-      </VFlex>
-      <VFlex grow>
-        <VCard mt-5>
+      </VCardActions>
+    </VCard>
+    <VSnackbar
+      v-model="snackbarDisplayed"
+      bottom
+      right
+      :color="snackbarColor"
+      :timeout="8000"
+    >
+      <VLayout>
+        <VIcon left>
+          {{ snackbarIcon }}
+        </VIcon>
+        {{ snackbarMessage }}
+      </VLayout>
+      <VBtn
+        flat
+        @click.native="value = false"
+      >
+        <VIcon>
+          close
+        </VIcon>
+      </VBtn>
+    </VSnackbar>
+    <VContainer fluid>
+      <VLayout row>
+        <VCard
+          mt-5
+          xs12
+        >
           <VCardTitle>
-            <h2>
-              Response
-            </h2>
+            <h1>
+              Response payload
+            </h1>
           </VCardTitle>
           <VCardText>
-            <VDataTable
-              :headers="headers"
-              :items="requestHistory"
-              hide-actions
-              class="elevation-1"
-            >
-              <template
-                slot="items"
-                slot-scope="props"
-              >
-                <td>
-                  {{ new Date(props.item.date).toLocaleDateString() }}
-                </td>
-                <td>
-                  {{ props.item.request }}
-                </td>
-                <td>
-                  {{ props.item.response }}
-                </td>
-              </template>
-            </VDataTable>
+            {{ responsePayload }}
           </VCardText>
         </VCard>
-      </VFlex>
-    </VLayout>
-  </VContainer>
+      </VLayout>
+    </VContainer>
+  </div>
 </template>
 <script>
   import './../grpc/dist/api.js'
   export default {
+    name: "Diagnostic",
     data: () => { return {
-      headers: [{ value: 'date', text: 'Date' }, { value: 'request', text: 'Request' }, { value: 'message', text: 'Response' }],
+      snackbarDisplayed: false,
+      chipValue: [],
+      subscribed: false,
       request: '',
-      requestHistory: [],
+      search: null,
+      stream: null,
+      dataHistory: 52,
+      snackbarMessage: 'Not connected',
+      snackbarIcon: 'warning',
+      snackbarColor: 'error',
+      responseArray: [],
+      signalDataList: [],
+      firstRun: true,
+      chipOnline: [],
+      selected: false,
+      uniqueFilterGlobal: 0,
+      diagnosticsServiceClient: null,
+      responsePayload: null,
     } },
     computed: {
       connectionStatus: {
@@ -129,7 +165,23 @@
           this.$store.commit('updateConnectionStatus', value)
         },
       },
-      storedEventHistory: {
+      brokerServerIp: {
+        get () {
+          return this.$store.state.brokerServerIp
+        },
+        set (value) {
+          this.$store.commit('updateBrokerServerIp', value)
+        },
+      },
+      selectedSignals: {
+        get () {
+          return this.$store.state.selectedSignals
+        },
+        set (value) {
+          this.$store.commit('updateSelectedSignals', value)
+        },
+      },
+      requestHistory: {
         get () {
           return this.$store.state.requestHistory
         },
@@ -141,115 +193,109 @@
     watch: {
     },
     created () {
-      this.requestHistory = this.storedEventHistory
+    },
+    mounted () {
+      this.streamSetup()
+    },
+    beforeDestroy () {
+      const currentStatus = this.connectionStatus
+      this.stopStream()
+      this.connectionStatus = currentStatus
     },
     methods: {
-      listSignals (name) {
-        this.request = name
-        // eslint-disable-next-line no-undef
-        const SystemService = new api.default.SystemServiceClient(this.$store.state.brokerServerIp)
-        // eslint-disable-next-line no-undef
-        const request = new api.default.NameSpace()
-        request.setName(name)
-        SystemService.listSignals(request, {}, this.callBack)
-        this.connectionStatus = 'success--text'
-        const entry = { date: Date.now(), request: this.request, response: 'Signals listed' }
-        this.requestHistory.push(entry)
-        this.$store.commit('updateRequestHistory', this.requestHistory)
+      snackbar (color, snackbarMessage, icon) {
+        this.snackbarColor = color
+        this.snackbarMessage = snackbarMessage
+        this.snackbarIcon = icon || 'warning'
+        this.snackbarDisplayed = true
       },
-      callBack (err, response) {
-        if (response) {
-          console.error( 'listSingal error: ', err );
-        }
+      responseIncludes (item) {
+        const findName = this.responseArray.findIndex((element) => {
+          return element === item })
+        if (findName === -1) { return false } else { return true }
       },
-      getConfiguration() {
-        this.request = 'GetConfiguration'
-        // eslint-disable-next-line no-undef
-        const SystemService = new api.default.SystemServiceClient(this.$store.state.brokerServerIp)
-        // eslint-disable-next-line no-undef
-        const request = new api.default.Empty()
-        SystemService.getConfiguration(request, {}, this.callBack)
+      remove (index) {
+        // this.firstRun = true
+        this.stopStream()
+        this.selectedSignals.splice(index, 1)
+        this.streamSetup()
       },
-      fetchLists() {
-        this.request = name
-        // eslint-disable-next-line no-undef
-        const SystemService = new api.default.NetworkServiceClient(this.$store.state.brokerServerIp)
-        // const request = new api.default.NameSpace()
-        // request.setName(name)
-        // eslint-disable-next-line no-undef
-        const request = new api.default.Empty()
-        SystemService.getConfiguration(request, {}, this.fetchListsCallback)
+      onlineChip () {
+        return this.signalDataList.map(item => { return item.name })
       },
-      fetchListsCallback(err, response) {
-        if (response) {
-          this.connectionStatus == 'success--text'
-          const lists = response.getConfigurationList();
-          lists.forEach(list => {
-            console.log('nameSpace', list.getNamespace().getName());
-          })
-        } else {
-          this.connectionStatus == 'error--text'
-        }
-      },
-      subscribe(ClientId, Signal) {
-        this.request = 'Subscribe'
-        // eslint-disable-next-line no-undef
-        const NetworkService = new api.default.NetworkServiceClient(this.$store.state.brokerServerIp)
-        // eslint-disable-next-line no-undef
-        const nameSpace = new api.default.NameSpace()
-        nameSpace.setName("SafetyCANexposed")
-        // eslint-disable-next-line no-undef
-        const signalId = new api.default.SignalId()
-        signalId.setNamespace(nameSpace)
-        signalId.setName("ASDMSafeExpoFr16")
-        // create empty array to contain signals
+      streamSetup () {
+        this.request = 'Diagnostic'
         const signals = [];
-        signals.push(signalId)
+        this.selectedSignals.forEach(signal => {
+          if (signal.signalId) {
+            signals.push(signal.signalId)
+          }
+        })
         // eslint-disable-next-line no-undef
-        const signalIds = new api.default.SignalIds()
-        signalIds.setSignalidList(signals)
+        const request = new api.default.DiagnosticsRequest()
+        const serviceId = 0x22
+        const dataId = 0x1f90
+        request.setDownlink(signals[0]) // PscmToVddmChasDiagResFrame
+        request.setUplink(signals[1]) // VddmToAllFuncChasDiagReqFrame
+        request.setServiceid(serviceId.toString(16))
+        request.setDataidentifier(dataId.toString(16))
+        this.startStream(request)
+      },
+      startStream (request) {
         // eslint-disable-next-line no-undef
-        const subsConfig = new api.default.SubscriberConfig()
-        // eslint-disable-next-line no-undef
-        const clientId = new api.default.ClientId()
-        clientId.setId("my_client")
-        subsConfig.setSignals(signalIds)
-        subsConfig.setClientid(clientId)
-        subsConfig.setOnchange(false)
-        const stream = NetworkService.subscribeToSignals(subsConfig)
-        console.log('stream', stream);
-        stream.on('data', function (response) {
-          const signals = response.getSignalList()
-          signals.forEach(signal => {
-            const name = signal.getId().getName()
-            const data = signal.getDouble()
-            console.log('data', name, data, );
-            console.log('signal', signal);
-            let signalData = ''
-            if (signal.hasDouble()) {
-              signalData = signal.getDouble()
-            } else if (signal.hasInteger()) {
-              signalData = signal.getInteger()
-            } else if (signal.hasArbitration()) {
-              signalData = signal.getArbitration()
-            } else if (signal.hasEmpty()) {
-              signalData = signal.getEmpty()
-            }
-            console.log('signalData', signalData);
-            return signalData
-          });
+        const diagnosticsClient = new api.default.DiagnosticsServiceClient(this.brokerServerIp)
+        this.stream = diagnosticsClient.sendDiagnosticsQuery(request)
+        this.stream.on('data', response => {
+          this.streamResponse(response)
+          this.snackbar('success', "Connected", 'check')
+          if (this.connectionStatus !== 'success--text') {
+            this.connectionStatus = 'success--text'
+          }
         });
-        setTimeout(() => {
-          stream.cancel()
-          this.request = 'Cancel Sub';
-          const entry = { date: Date.now(), request: this.request, response: signalId.getName() }
-          this.requestHistory.push(entry)
-          this.$store.commit('updateRequestHistory', this.requestHistory)
-        }, 3000);
-        const entry = { date: Date.now(), request: this.request, response: signalId.getName() }
-        this.requestHistory.push(entry)
+        this.stream.on('end', () => {
+          this.stopStream()
+          this.snackbarDisplayed = false;
+        })
+        this.stream.on('status', (status) => {
+          if (status.details.length > 1) {
+            this.snackbar('info', status.details, 'info')
+            this.subscribed = false;
+          }
+        })
+        this.stream.on('error', (error) => {
+          this.stopStream();
+          this.snackbar('error', error.message, 'warning')
+          this.connectionStatus = 'error--text'
+        })
         this.$store.commit('updateRequestHistory', this.requestHistory)
+      },
+      stopStream () {
+        this.request = 'Cancel Subscription';
+        if (this.stream) {
+          this.stream.cancel()
+        }
+        this.subscribed = false;
+        this.$store.commit('updateRequestHistory', this.requestHistory)
+      },
+      streamResponse (response) {
+        this.subscribed = false;
+        this.responsePayload = response.messageId_
       },
     },
   }
 </script>
+<style>
+@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
+.overflowY {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(86vh - 300px);
+}
+.marginToolbar {
+  margin-top: -64px;
+}
+.monoSpace {
+  font-family: "Roboto Mono", monospace;
+  font-weight: 400;
+}
+</style>
