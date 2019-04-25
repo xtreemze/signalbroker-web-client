@@ -3,41 +3,14 @@
     <VToolbar
       card
       color="transparent"
-      extended
     >
       <VIcon>
-        directions_car
+        nature
       </VIcon>
       <VToolbarTitle>
         Signal tree
       </VToolbarTitle>
       <VSpacer />
-      <template v-slot:extension>
-        <VSheet
-          class="
-          ml-2
-        "
-          color="transparent"
-        >
-          <VTextField
-            v-model.trim.lazy="search"
-            :disabled="signalSelectionItems.length === 0"
-            label="Search signals"
-            flat
-            hide-details
-            clearable
-            prepend-icon="search"
-            @focus="collapseTree"
-            @blur="openTree"
-          />
-          <VCheckbox
-            v-model="caseSensitive"
-            :disabled="signalSelectionItems.length === 0"
-            hide-details
-            label="Case sensitive"
-          />
-        </VSheet>
-      </template>
     </VToolbar>
     <VLayout
       row
@@ -45,57 +18,94 @@
     >
       <VFlex
         xs12
-        py-4
-        pl-4
         sm12
         md6
-        class="overflowY"
       >
-        <VCardText
-          v-if="signalSelectionItems.length === 1"
-          py-0
-          class="tree"
-        >
-          <VExpandTransition>
-            <VTreeview
-              v-model="selectedSignalsLocal"
-              :search="search"
-              itemid="id"
-              :items="signalSelectionItems"
-              selectable
-              transition
-              :open.sync="treeOpenItems"
-              return-object
-              @input="selectSignals"
-            />
-          </VExpandTransition>
-        </VCardText>
-        <VCardText
-          v-else
-          pt-3
-        >
-          <VContainer>
-            <VLayout
-              align-center
-              justify-center
-            >
-              <VIcon
-                large
-                disabled
+        <VCardText class="tree py-0 px-0">
+          <VSheet
+            class="mb-3 pl-3"
+            color="transparent"
+          >
+            <VLayout row>
+              <VTextField
+                v-model.trim.lazy="search"
+                :disabled="signalSelectionItems.length === 0"
+                label="Search signals"
+                flat
+                hide-details
+                clearable
+                prepend-icon="search"
+                @focus="collapseTree"
+                @blur="openTree"
+              />
+              <VBtn
+                icon
+                :disabled="selectedSignalsLocalLength === 0"
+                flat
+                @click="clear"
               >
-                sync_problem
-              </VIcon>
+                <VIcon>
+                  clear_all
+                </VIcon>
+              </VBtn>
+              <VBtn
+                icon
+                flat
+                @click="fetchLists"
+              >
+                <VIcon>
+                  cached
+                </VIcon>
+              </VBtn>
             </VLayout>
-          </VContainer>
+          </VSheet>
+          <VDivider class="hidden-md-and-up" />
+          <VSheet
+            v-if="signalSelectionItems.length === 1"
+            class="overflowY
+                 py-4
+                 pl-4
+                 "
+          >
+            <VExpandTransition>
+              <VTreeview
+                v-model="selectedSignalsLocal"
+                :search="search"
+                itemid="id"
+                :items="signalSelectionItems"
+                selectable
+                transition
+                :open.sync="treeOpenItems"
+                return-object
+                @input="selectSignals"
+              />
+            </VExpandTransition>
+          </VSheet>
+          <VCardText
+            v-else
+            pt-3
+          >
+            <VContainer>
+              <VLayout
+                align-center
+                justify-center
+              >
+                <VIcon
+                  large
+                  disabled
+                >
+                  sync_problem
+                </VIcon>
+              </VLayout>
+            </VContainer>
+          </VCardText>
         </VCardText>
       </VFlex>
-      <VDivider />
       <VFlex
         xs12
         sm12
         md6
-        py-4
-        class="overflowY"
+        class=""
       >
         <VDivider class="hidden-md-and-up" />
         <div
@@ -103,24 +113,38 @@
           key="title"
           class="title font-weight-light grey--text pa-3 text-xs-center"
         >
-          Select signals to be controlled through this interface
+          Select signals to be analyzed and controlled.
         </div>
-        <span
-          v-for="(selection, index) in selectedSignalsChip"
-          :key="index"
+        <div
+          v-else
+          class="px-3 pb-5 pt-3 overflowY2"
         >
-          <VDivider
-            v-if="selection.children.length > 0"
-            class="my-2"
-          />
-          <VChip
-            small
-            :label="(selection.children.length > 0)"
-            @input="remove(index)"
+          <span
+            v-for="(selection, index) in selectedSignalsChip"
+            :key="index"
           >
-            {{ selection.name }}
-          </VChip>
-        </span>
+            <VSpacer
+              v-if="selection.isParent"
+              class="my-4"
+            />
+            <VChip
+              v-ripple
+              small
+              :label="selection.isParent"
+              @input="remove(index)"
+            >
+              {{ selection.name }}
+            </VChip>
+            <span
+              v-if="selection.isParent"
+              class="caption grey--text"
+            > {{ selection.namespace }}</span>
+            <VSpacer
+              v-if="selection.isParent"
+              class="my-0"
+            />
+          </span>
+        </div>
       </VFlex>
     </VLayout>
     <VDivider />
@@ -129,19 +153,6 @@
         row
         wrap
       >
-        <VBtn
-          :disabled="selectedSignalsLocalLength === 0"
-          flat
-          @click="clear"
-        >
-          Clear
-        </VBtn>
-        <VBtn
-          flat
-          @click="fetchLists"
-        >
-          Fetch
-        </VBtn>
         <VSpacer />
         <VBtn
           :disabled="selectedSignalsChip === selectedSignals"
@@ -149,11 +160,7 @@
           depressed
           @click="saveSignalState"
         >
-          Save
-          <VIcon
-            right
-            class="hidden-sm-and-down"
-          >
+          <VIcon>
             save
           </VIcon>
         </VBtn>
@@ -161,14 +168,10 @@
           :disabled="selectedSignalsLength === 0"
           color="info"
           depressed
-          to="control"
+          to="monitor"
         >
-          Control
-          <VIcon
-            right
-            class="hidden-sm-and-down"
-          >
-            gamepad
+          <VIcon>
+            traffic
           </VIcon>
         </VBtn>
       </VLayout>
@@ -211,7 +214,6 @@
   export default {
     data: () => { return {
       request: '',
-      caseSensitive: false,
       snackbarDisplayed: false,
       treeOpenItems: [],
       selectedSignalsLocal: [],
@@ -221,10 +223,10 @@
       snackbarUrl: '',
     } },
     computed: {
-      selectedSignalsLength(){
+      selectedSignalsLength () {
         return this.selectedSignals.length
       },
-      selectedSignalsLocalLength(){
+      selectedSignalsLocalLength () {
         return this.selectedSignalsLocal.length
       },
       search: {
@@ -275,36 +277,31 @@
           this.$store.commit('updateRequestHistory', value)
         },
       },
-      filter () {
-        return this.caseSensitive
-          ? (item, textKey) => { return item[textKey].indexOf(this.search) > -1 }
-          : undefined
-      },
     },
     watch: {
     },
     created () {
     },
     mounted () {
-      this.selectedSignalsLocal = this.selectedSignals
-      this.reset()
       if (this.signalSelectionItems.length === 0) {
         this.fetchLists()
       }
+      this.reset()
+      this.selectedSignalsLocal = this.selectedSignals
     },
     methods: {
-      collapseTree(){
+      collapseTree () {
         this.treeOpenItems = []
       },
-      openTree(){
+      openTree () {
         const resultingArray = []
-        resultingArray.push({ name: 'Signal Buses', id: 'Signal Buses', children: [] })
+        resultingArray.push({ name: 'CAN Buses', id: 'CAN Buses', children: [] })
         this.selectedSignalsLocal.forEach(signal => {
           resultingArray[0].children.push({ name: signal.name, id: signal.id, children: signal.children })
         })
         this.treeOpenItems = resultingArray
       },
-      selectSignals(){
+      selectSignals () {
         this.selectedSignalsChip = this.selectedSignalsLocal
       },
       clear () {
@@ -399,6 +396,7 @@
                 const frameChildLabel = {
                   id: parentName + frameChildName + childIndex,
                   name: frameChildName,
+                  namespace: parentName,
                   children: [],
                   signalId: frameChildSignalId,
                   min: frameChildMetaData.getMin(),
@@ -406,6 +404,7 @@
                   size: frameChildMetaData.getSize(),
                   unit: frameChildMetaData.getUnit(),
                   description: frameChildMetaData.getDescription(),
+                  isParent: false,
                 }
                 childIndex += 1
                 frameChildGroup.push(frameChildLabel)
@@ -413,6 +412,7 @@
               frameGroup.push({
                 id: parentName + frameName + childIndex,
                 name: frameName,
+                namespace: parentName,
                 children: frameChildGroup,
                 signalId: frameSignalId,
                 min: frameMetaData.getMin(),
@@ -420,6 +420,7 @@
                 size: frameMetaData.getSize(),
                 unit: frameMetaData.getUnit(),
                 description: frameMetaData.getDescription(),
+                isParent: true,
               })
               childIndex += 1
             })
@@ -434,12 +435,17 @@
 .overflowY {
   overflow-x: hidden;
   overflow-y: auto;
-  max-height: calc(98vh - 380px);
+  max-height: calc(78vh - 380px);
+}
+.overflowY2 {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(78vh - 316px);
 }
 .marginToolbar {
   margin-top: -64px;
 }
-.tree{
-overflow-x: visible
+.tree {
+  overflow-x: visible;
 }
 </style>

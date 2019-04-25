@@ -28,7 +28,7 @@
         >
           <VListTileAvatar>
             <VIcon>
-              ballot
+              nature
             </VIcon>
           </VListTileAvatar>
           <VListTileContent>
@@ -42,20 +42,20 @@
         </VListTile>
         <VListTile
           avatar
-          to="/control"
+          to="/monitor"
           :disabled="selectedSignals.length === 0"
         >
           <VListTileAvatar>
             <VIcon :disabled="selectedSignals.length === 0">
-              gamepad
+              traffic
             </VIcon>
           </VListTileAvatar>
           <VListTileContent>
             <VListTileTitle>
-              Signal Control
+              Signal Monitor
             </VListTileTitle>
             <VListTileSubTitle>
-              Interact with the vehicle
+              Observe signal traffic
             </VListTileSubTitle>
           </VListTileContent>
         </VListTile>

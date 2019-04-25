@@ -1,23 +1,30 @@
 <template>
-  <VFadeTransition>
+  <VScrollXTransition>
     <VFlex
-      v-if="visible"
+      v-show="visible || highlight"
       xs12
       sm6
       md4
       lg3
     >
-      <VCard
-        :color="highlight ? 'grey darken-2' : ''"
-        :raised="highlight"
-      >
+      <VCard>
         <VCardTitle>
+          <VExpandXTransition>
+            <VIcon
+              v-show="highlight"
+              small
+              left
+              color="primary"
+            >
+              label
+            </VIcon>
+          </VExpandXTransition>
           <h4>
             {{ name }}
           </h4>
+          <VSpacer />
         </VCardTitle>
         <VContainer
-          v-if="visible"
           fluid
           fill-height
           ma-0
@@ -41,11 +48,11 @@
         </VContainer>
         <VDivider />
         <VList
-          v-if="visible"
           dense
+          color="transparent"
         >
           <VListTile
-            v-if="isParent === false"
+            v-if="!isParent"
           >
             <VListTileContent class="grey--text text-uppercase font-weight-black">
               {{ dataType || 'Data type' }}:
@@ -56,7 +63,7 @@
               </h3>
             </VListTileContent>
           </VListTile>
-          <VListTile v-if="isParent && raw.length">
+          <VListTile v-else>
             <VListTileContent class="grey--text text-uppercase font-weight-black">
               Raw:
             </VListTileContent>
@@ -72,7 +79,7 @@
             </VListTileContent>
           </VListTile>
         </VList>
-        <VCardActions v-if="visible">
+        <VCardActions>
           <VLayout>
             <VBtn
               block
@@ -134,12 +141,12 @@
           <VCardText
             v-show="showLog"
             class="
-          pa-0
-          ma-0
-          "
+        pa-0
+        ma-0
+        "
           >
             <VDataTable
-              v-if="visible"
+              v-if="visible || highlight"
               :items="entryLog"
               item-key="id"
               :pagination.sync="pagination"
@@ -176,13 +183,13 @@
           <VCardText
             v-show="showAdditionalInfo"
             class="
-          pa-0
-          ma-0
-          "
+        pa-0
+        ma-0
+        "
           >
             <VDivider />
             <VList
-              v-if="visible"
+              v-if="visible || highlight"
               dense
             >
               <VListTile>
@@ -240,13 +247,13 @@
           <VCardText
             v-show="showConfiguration"
             class="
-          pa-0
-          ma-0
-          "
+        pa-0
+        ma-0
+        "
           >
             <VDivider />
             <VList
-              v-if="visible"
+              v-if="visible || highlight"
               dense
             >
               <VListTile>
@@ -255,7 +262,35 @@
                     <VLayout row>
                       <VFlex>
                         <VSlider
+                          v-model="uniqueFilter"
+                          hide-actions
+                          hide-details
+                          label="Filter strength"
+                          max="30"
+                          min="1"
+                          step="1"
+                        />
+                      </VFlex>
+                      <VFlex
+                        shrink
+                        headline
+                        pt-4
+                      >
+                        {{ uniqueFilter }}
+                      </VFlex>
+                    </VLayout>
+                  </VContainer>
+                </VListTileContent>
+              </VListTile>
+              <VListTile>
+                <VListTileContent>
+                  <VContainer px-0>
+                    <VLayout row>
+                      <VFlex>
+                        <VSlider
                           v-model="dataHistoryLocal"
+                          hide-actions
+                          hide-details
                           label="History"
                           max="800"
                           min="2"
@@ -275,19 +310,23 @@
               </VListTile>
               <VListTile>
                 <VListTileContent>
-                  <VRadioGroup
-                    v-model="chartType"
-                    row
-                  >
-                    <VRadio
-                      label="Trend line"
-                      value="trend"
-                    />
-                    <VRadio
-                      label="Bar graph"
-                      value="bar"
-                    />
-                  </vradiogroup>
+                  <VContainer px-0>
+                    <VRadioGroup
+                      v-model="chartType"
+                      row
+                      hide-actions
+                      hide-details
+                    >
+                      <VRadio
+                        label="Trend line"
+                        value="trend"
+                      />
+                      <VRadio
+                        label="Bar graph"
+                        value="bar"
+                      />
+                    </vradiogroup>
+                  </VContainer>
                 </VListTileContent>
               </VListTile>
               <VListTile>
@@ -297,10 +336,12 @@
                       <VFlex>
                         <VSlider
                           v-model="lineWidth"
+                          hide-actions
+                          hide-details
                           label="Line width"
-                          max="12"
+                          max="32"
                           min="0.1"
-                          step="0.1"
+                          step="0.01"
                         />
                       </VFlex>
                       <VFlex
@@ -321,10 +362,12 @@
                       <VFlex>
                         <VSlider
                           v-model="radius"
+                          hide-actions
+                          hide-details
                           label="Smoothing"
                           max="10"
                           min="0"
-                          step="1"
+                          step="0.01"
                         />
                       </VFlex>
                       <VFlex
@@ -345,10 +388,12 @@
                       <VFlex>
                         <VSlider
                           v-model="padding"
+                          hide-actions
+                          hide-details
                           label="Padding"
                           max="32"
                           min="0"
-                          step="1"
+                          step="0.01"
                         />
                       </VFlex>
                       <VFlex
@@ -367,6 +412,8 @@
                   <VContainer px-0>
                     <VSwitch
                       v-model="autoLineWidth"
+                      hide-actions
+                      hide-details
                       label="Auto line width"
                     />
                   </VContainer>
@@ -377,6 +424,8 @@
                   <VContainer px-0>
                     <VSwitch
                       v-model="fill"
+                      hide-actions
+                      hide-details
                       label="Fill"
                     />
                   </VContainer>
@@ -387,6 +436,8 @@
                   <VContainer px-0>
                     <VSwitch
                       v-model="animate"
+                      hide-actions
+                      hide-details
                       label="Animate"
                     />
                   </VContainer>
@@ -399,6 +450,8 @@
                       <VFlex>
                         <VSlider
                           v-model="drawDuration"
+                          hide-actions
+                          hide-details
                           label="Draw duration"
                           max="800"
                           min="100"
@@ -421,7 +474,7 @@
         </VSlideYTransition>
       </VCard>
     </VFlex>
-  </vfadetransition>
+  </VScrollXTransition>
 </template>
 <script>
   export default {
@@ -449,8 +502,8 @@
       min: { type: Number, default: null },
       max: { type: Number, default: null },
       size: { type: Number, default: null },
+      uniqueFilterGlobal: { type: Number, default: null },
       raw: { type: [String, Uint8Array], default: null },
-      onlineFilter: { type: Boolean },
       highlight: { type: Boolean },
     },
     data () {
@@ -469,7 +522,7 @@
         padding: 6,
         dataHistoryLocal: 52,
         lineWidth: 2.2,
-        chartHeight: 120,
+        chartHeight: 100,
         chartType: 'trend',
         typeOptions: ['trend', 'bar'],
         chartDataValueArray: [],
@@ -478,6 +531,7 @@
         isParent: false,
         isBinary: false,
         autoLineWidth: false,
+        uniqueFilter: 3,
       }
     },
     computed: {
@@ -494,21 +548,17 @@
         return new Set(this.chartDataValueArray)
       },
       visible () {
-        if (this.onlineFilter && !this.isParent) {
-          if (this.dataSetLength < 3 && this.dataHistoryLocal > 20) {
-            return false
-          } else {
-            return true }
-        } else { return true }
+        if (this.dataSetLength < this.uniqueFilter && this.dataHistoryLocal > 9) {
+          return false
+        } else {
+          return true }
       },
     },
     watch: {
+      uniqueFilterGlobal(){
+        this.uniqueFilter = this.uniqueFilterGlobal
+      },
       data () {
-        if (this.dataLength > 86 && this.isBinary) {
-          this.fill = true
-        } else if (this.dataLength < 87) {
-          this.fill = false
-        }
         if (this.isParent === false) {
           if (this.raw.length > 5) {
             this.isParent = true
@@ -523,20 +573,25 @@
             const difference = this.entryLogLength - this.dataHistoryLocal
             this.entryLog.splice(0, difference)
           }
-          if (this.dataSetLength < 4) {
-            if (!this.isBinary && this.dataLength < 60) {
-              this.isBinary = true
-              this.setBar()
-            } else {
-              if (this.chartType !== this.typeOptions[0]) {
-                this.setLine()
-              }
-            }
+        }
+        if (this.dataLength > 86 && this.isBinary) {
+          this.fill = true
+        } else if (this.dataLength < 87) {
+          this.fill = false
+        }
+        if (this.dataSetLength < 4) {
+          if (!this.isBinary && this.dataLength < 60) {
+            this.isBinary = true
+            this.setBar()
           } else {
-            if (!this.isBinary && this.dataLength < 90) {
-              this.isBinary = false
+            if (this.chartType !== this.typeOptions[0]) {
               this.setLine()
             }
+          }
+        } else {
+          if (!this.isBinary && this.dataLength < 90) {
+            this.isBinary = false
+            this.setLine()
           }
         }
       },

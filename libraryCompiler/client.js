@@ -1,6 +1,8 @@
-import { NameSpace, Frames, SignalInfo, SignalId, SignalIds, SubscriberConfig, ClientId, Empty } from './network_api_pb.js'
-import { NetworkServiceClient } from './network_api_grpc_web_pb.js'
-import { SystemServiceClient } from './system_api_grpc_web_pb.js'
+import { NameSpace, Frames, SignalInfo, SignalId, SignalIds, SubscriberConfig, ClientId, Empty } from './network_api_pb'
+import { NetworkServiceClient, NetworkServicePromiseClient } from './network_api_grpc_web_pb'
+import { SystemServiceClient, SystemServicePromiseClient } from './system_api_grpc_web_pb'
+import {DiagnosticsRequest, DiagnosticsResponse} from './diagnostics_api_pb'
+import {DiagnosticsServiceClient, DiagnosticsServicePromiseClient} from './diagnostics_api_grpc_web_pb'
 
 
-export default { SystemServiceClient, NetworkServiceClient, NameSpace, Frames,  SignalInfo, SignalId, SignalIds, SubscriberConfig, ClientId, Empty }
+export default { SystemServiceClient, SystemServicePromiseClient, NetworkServiceClient, NetworkServicePromiseClient, NameSpace, Frames, SignalInfo, SignalId, SignalIds, SubscriberConfig, ClientId, Empty, DiagnosticsRequest, DiagnosticsResponse, DiagnosticsServiceClient, DiagnosticsServicePromiseClient }
