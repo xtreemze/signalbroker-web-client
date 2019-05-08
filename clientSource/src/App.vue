@@ -33,7 +33,7 @@
           </VListTileAvatar>
           <VListTileContent>
             <VListTileTitle>
-              Signal tree
+              Selection tree
             </VListTileTitle>
             <VListTileSubTitle>
               Choose what to control
@@ -52,10 +52,28 @@
           </VListTileAvatar>
           <VListTileContent>
             <VListTileTitle>
-              Signal Monitor
+              Traffic Monitor
             </VListTileTitle>
             <VListTileSubTitle>
               Observe signal traffic
+            </VListTileSubTitle>
+          </VListTileContent>
+        </VListTile>
+        <VListTile
+          avatar
+          to="/diagnostics"
+        >
+          <VListTileAvatar>
+            <VIcon>
+              bug_report
+            </VIcon>
+          </VListTileAvatar>
+          <VListTileContent>
+            <VListTileTitle>
+              Diagnostics
+            </VListTileTitle>
+            <VListTileSubTitle>
+              OBD-II PIDs
             </VListTileSubTitle>
           </VListTileContent>
         </VListTile>

@@ -8,7 +8,7 @@
         nature
       </VIcon>
       <VToolbarTitle>
-        Signal tree
+        Selection tree
       </VToolbarTitle>
       <VSpacer />
     </VToolbar>
@@ -165,7 +165,7 @@
           </VIcon>
         </VBtn>
         <VBtn
-          :disabled="selectedSignalsLength === 0"
+          :disabled="selectedSignalsLength === 0 || selectedSignalsChip !== selectedSignals"
           color="info"
           depressed
           to="monitor"

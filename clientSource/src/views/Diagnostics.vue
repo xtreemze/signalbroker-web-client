@@ -9,18 +9,22 @@
           bug_report
         </VIcon>
         <VToolbarTitle>
-          Diagnostic
+          Diagnostics
         </VToolbarTitle>
       </VToolbar>
       <VCardText class="overflowY py-3">
         <VLayout>
           <VSlider
             v-model.number="service"
-            :max="32"
+            :max="255"
             :min="0"
             :step="1"
-            thumb-label
             label="Service"
+          />
+          <VTextField
+            v-model.number="service"
+            class="mt-0 ml-3 shrink"
+            type="number"
           />
         </VLayout>
         <VLayout>
@@ -29,8 +33,34 @@
             :max="255"
             :min="0"
             :step="1"
-            thumb-label
-            label="PID Range"
+            label="PID 1"
+          />
+          <VTextField
+            v-model.number="pid[0]"
+            class="mt-0 ml-3 shrink"
+            type="number"
+            label="Min"
+          />
+          <VTextField
+            v-model.number="pid[1]"
+            shrink
+            class="mt-0 ml-3 shrink"
+            type="number"
+            label="Max"
+          />
+        </VLayout>
+        <VLayout>
+          <VSlider
+            v-model.number="pid2"
+            :max="255"
+            :min="0"
+            :step="1"
+            label="PID 2"
+          />
+          <VTextField
+            v-model.number="pid2"
+            class="mt-0 ml-3 shrink"
+            type="number"
           />
         </VLayout>
       </VCardText>
@@ -125,7 +155,7 @@
               v-for="(byte, i) in props.item.serviceId "
               :key="i"
             >
-              <span v-if="(rawStringLength(byte) < 2)">0</span>{{ byte | rawStringFilter }}
+              <span v-if="(rawStringLength(byte) < 2)">0</span>{{ byte | rawStringFilter }}(<span v-if="byte < 10">00</span><span v-else-if="byte < 100">0</span>{{ byte }})
             </span>
           </span>
         </td>
@@ -135,17 +165,7 @@
               v-for="(byte, i) in props.item.pIdHex "
               :key="i"
             >
-              <span v-if="(rawStringLength(byte) < 2)">0</span>{{ byte | rawStringFilter }}
-            </span>
-          </span>
-        </td>
-        <td class="text-xs-left monoSpace">
-          <span class="monoSpace text-truncate text-uppercase">
-            <span
-              v-for="(byte, i) in props.item.pIdHex "
-              :key="i"
-            >
-              <span v-if="byte < 10">00</span><span v-else-if="byte < 100">0</span>{{ byte }}
+              <span v-if="(rawStringLength(byte) < 2)">0</span>{{ byte | rawStringFilter }}(<span v-if="byte < 10">00</span><span v-else-if="byte < 100">0</span>{{ byte }})
             </span>
           </span>
         </td>
@@ -159,12 +179,16 @@
             </span>
           </span>
         </td>
+        <td class="text-xs-left text-truncate">
+          {{ props.item.description }}
+        </td>
       </template>
     </VDataTable>
   </div>
 </template>
 <script>
   import './../grpc/dist/api.js'
+  import services from './../assets/pid.js'
   export default {
     name: "Diagnostic",
     filters: {
@@ -179,7 +203,8 @@
     data: () => { return {
       snackbarDisplayed: false,
       service: 1,
-      pid: [0, 64],
+      pid: [0, 24],
+      pid2: 0,
       chipValue: [],
       subscribed: false,
       request: '',
@@ -210,29 +235,28 @@
           sortable: true,
         },
         {
-          text: 'Service',
+          text: 'Service Hex(Dec)',
           value: 'serviceId',
           align: 'left',
           sortable: true,
         },
         {
-          text: 'PID Hex',
+          text: 'PID Hex(Dec)',
           value: 'pIdHex',
           align: 'left',
           sortable: true,
         },
         {
-          text: 'PID Dec',
-          value: 'pIdHex',
-          align: 'left',
-          sortable: true,
-        },
-        {
-          text: 'Raw Data',
+          text: 'Raw Hex Data',
           value: 'data',
           class: 'grow',
           align: 'left',
           sortable: true,
+        },
+        {
+          text: 'Description',
+          value: 'description',
+          align: 'left',
         },
       ],
     } },
@@ -325,7 +349,7 @@
         this.diagnosticsRequest(request)
       },
       queryVin () {
-        this.request = 'VIN Diagnostic'
+        this.request = 'Query VIN'
         // eslint-disable-next-line no-undef
         const request = new api.default.DiagnosticsRequest()
         // eslint-disable-next-line no-undef
@@ -397,12 +421,15 @@
         serviceId[0] = 0x01
         request.setServiceid(serviceId)
         const dataId = new Uint8Array(1)
-        // dataId[0] = 0x42 // control module voltage
-        dataId[0] = 0x8D
+        dataId[0] = 0x42 // control module voltage
+        // dataId[0] = 0x8D
         request.setDataidentifier(dataId)
         this.diagnosticsRequest(request)
       },
       scanObd () {
+        if (this.pid[0] === this.pid[1]) {
+          this.pid[1] = this.pid[0] + 1
+        }
         for (let scanPidIndex = this.pid[0]; scanPidIndex < this.pid[1]; scanPidIndex += 1) {
           this.request = 'OBD Scan'
           // eslint-disable-next-line no-undef
@@ -423,8 +450,15 @@
           const serviceId = new Uint8Array(1)
           serviceId[0] = '0x' + this.service.toString(16)
           request.setServiceid(serviceId)
-          const dataId = new Uint8Array(1)
+          let dataIdLength = 1
+          if (this.pid2 > 0) {
+            dataIdLength = 2
+          }
+          const dataId = new Uint8Array(dataIdLength)
           dataId[0] = '0x' + scanPidIndex.toString(16)
+          if (this.pid2 > 0) {
+            dataId[1] = '0x' + this.pid2.toString(16)
+          }
           request.setDataidentifier(dataId)
           this.diagnosticsRequest(request)
         }
@@ -435,7 +469,7 @@
         this.diagnosticsQuery = diagnosticsClient.sendDiagnosticsQuery(request)
         this.diagnosticsQuery.on('data', response => {
           this.responseQuery(response, request)
-          this.snackbar('success', "Connected", 'check')
+          // this.snackbar('success', "", 'check')
           if (this.connectionStatus !== 'success--text') {
             this.connectionStatus = 'success--text'
           }
@@ -467,14 +501,20 @@
       },
       responseQuery (response, request) {
         this.subscribed = false;
+        const index = parseInt(request.getDataidentifier().toString(16), 10)
+        const serviceId = parseInt(request.getServiceid_asU8().toString(16),10)
+        const descriptionArray = services()[serviceId]
         const entry = {
           name: this.request,
           data: response.getRaw_asU8(),
           date: Date.now(),
+          description: descriptionArray[index] || '',
           serviceId: request.getServiceid_asU8(),
           pIdHex: request.getDataidentifier_asU8(),
         }
-        this.scanResults.push(entry)
+        if (entry.data.length > 0) {
+          this.scanResults.push(entry)
+        }
       },
     },
   }
