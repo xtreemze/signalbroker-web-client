@@ -1,7 +1,7 @@
 <template>
   <VFadeTransition>
     <VFlex
-      v-show="visible || highlight"
+      v-if="visible || highlight"
       xs12
       sm6
       md4
@@ -325,7 +325,7 @@
                         label="Bar graph"
                         value="bar"
                       />
-                    </vradiogroup>
+                    </VRadioGroup>
                   </VContainer>
                 </VListTileContent>
               </VListTile>

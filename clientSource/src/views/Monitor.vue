@@ -53,9 +53,11 @@
         <div
           v-if="selectedSignals.length === 0"
           key="title"
-          class="title font-weight-light grey--text pa-3 text-xs-center"
+          class="title font-weight-light grey--text pa-3 text-xs-center my-4"
         >
-          You have no selected signals at this time.
+          Select frames and signals from the <RouterLink to="/selection">
+            <a>Selection Tree</a>
+          </RouterLink>
         </div>
         <span
           v-for="(selection, i) in selectedSignals"
@@ -90,15 +92,24 @@
           row
           wrap
         >
-          <VBtn
-            flat
-            depressed
-            to="selection"
-          >
-            <VIcon>
-              nature
-            </VIcon>
-          </VBtn>
+          <div class="mx-1">
+            <VTooltip bottom>
+              <template v-slot:activator="{on}">
+                <VBtn
+                  flat
+                  color="grey"
+                  depressed
+                  to="selection"
+                  v-on="on"
+                >
+                  <VIcon>
+                    nature
+                  </VIcon>
+                </VBtn>
+              </template>
+              <span>Selection tree</span>
+            </VTooltip>
+          </div>
           <VSpacer />
           <VBtn
             v-if="!subscribed"
@@ -248,8 +259,8 @@
       },
     },
     watch: {
-      subscribed (){
-        if (this.firstRunSubscribed === true){
+      subscribed () {
+        if (this.firstRunSubscribed === true) {
           this.firstRunSubscribed = false
           setTimeout(() => {
             this.dataHistory = 36
@@ -341,7 +352,7 @@
         signalIds.setSignalidList(signals)
         // eslint-disable-next-line no-undef
         const clientId = new api.default.ClientId()
-        clientId.setId("my_client")
+        clientId.setId("SBWebClient" + Date.now())
         this.subsConfig.setSignals(signalIds)
         this.subsConfig.setClientid(clientId)
         this.startStream()
@@ -450,6 +461,7 @@
 .monoSpace {
   font-family: "Roboto Mono", monospace;
   font-weight: 400;
+  text-transform: uppercase;
 }
 .transitionNone {
   transition: none;

@@ -30,7 +30,7 @@ const services = () => {
 			'Oxygen Sensor 6 A: Voltage B: Short term fuel trim',
 			'Oxygen Sensor 7 A: Voltage B: Short term fuel trim',
 			'Oxygen Sensor 8 A: Voltage B: Short term fuel trim',
-			'ODB Standards this vehicle conforms to',
+			'OBD Standards this vehicle conforms to',
 			'Oxygen sensors present (in 4 banks)',
 			'Auxiliary input status',
 			'Run time since engine start',

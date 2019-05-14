@@ -9,7 +9,7 @@ This front-end client for the Signal Broker is designed to be simple and easy. O
 * Bus, frame and signal monitoring
 * Adaptive charting based on activity over time
 * Customizable line or bar chart visualizations per Signal
-* Display CAN Buses, Frames and Signals in a searchable, hierachical tree
+* Display CAN/LIN/Flexray Buses, Frames and Signals in a searchable, hierachical tree
 * Automatic realtime Frame and Signal recording
 * Realtime search of Buses, Frames and Signals within a tree hierarchy
 * Responsive design for all screen sizes
